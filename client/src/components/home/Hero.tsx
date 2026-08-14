@@ -13,9 +13,9 @@ const Hero = () => {
         </h1>
 
         <p className="text-slate-300 text-xl mt-8">
-          Upload your badminton gameplay videos and receive
-          AI-powered feedback on your posture, movement,
-          and stroke technique.
+         Upload your gameplay and receive AI-powered
+         feedback on your movement, technique, posture,
+         and overall performance.
         </p>
 
         <div className="mt-12">
