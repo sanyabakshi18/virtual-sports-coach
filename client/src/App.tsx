@@ -6,6 +6,7 @@ import Results from "./pages/Results";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
 
+
 function App() {
   return (
     <BrowserRouter>

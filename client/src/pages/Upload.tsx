@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-
 const sports = [
   {
     name: "Badminton",
@@ -30,10 +29,19 @@ const sports = [
 ];
 
 const Upload = () => {
+  // -----------------------------
+  // State
+  // -----------------------------
+
   const [selectedSport, setSelectedSport] = useState("Badminton");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // -----------------------------
+  // Handle video selection
+  // -----------------------------
 
   const handleVideoChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -57,6 +65,28 @@ const Upload = () => {
     setVideoFile(file);
   };
 
+  // -----------------------------
+  // Analyze video
+  // -----------------------------
+
+  const handleAnalyze = () => {
+  if (!videoFile) return;
+
+  setIsAnalyzing(true);
+
+  setTimeout(() => {
+    const params = new URLSearchParams({
+      sport: selectedSport,
+    });
+
+    window.location.href = `/results?${params.toString()}`;
+  }, 3000);
+};
+
+  // -----------------------------
+  // Create video preview
+  // -----------------------------
+
   useEffect(() => {
     if (!videoFile) {
       setVideoUrl(null);
@@ -64,6 +94,7 @@ const Upload = () => {
     }
 
     const url = URL.createObjectURL(videoFile);
+
     setVideoUrl(url);
 
     return () => {
@@ -71,11 +102,19 @@ const Upload = () => {
     };
   }, [videoFile]);
 
+  // -----------------------------
+  // Remove video
+  // -----------------------------
+
   const removeVideo = () => {
     setVideoFile(null);
     setVideoUrl(null);
     setError("");
   };
+
+  // -----------------------------
+  // UI
+  // -----------------------------
 
   return (
     <div className="min-h-screen bg-slate-950 text-white px-6 py-12">
@@ -208,6 +247,7 @@ const Upload = () => {
             </div>
           )}
 
+          {/* Error */}
           {error && (
             <p className="text-red-400 mt-4">
               {error}
@@ -236,16 +276,40 @@ const Upload = () => {
         <div className="mt-8">
           <button
             type="button"
-            disabled={!videoFile}
+            onClick={handleAnalyze}
+            disabled={!videoFile || isAnalyzing}
             className={`w-full md:w-auto px-10 py-4 rounded-xl text-lg font-semibold transition ${
-              videoFile
+              videoFile && !isAnalyzing
                 ? "bg-blue-600 hover:bg-blue-700 text-white"
                 : "bg-slate-800 text-slate-500 cursor-not-allowed"
             }`}
           >
-            Analyze {selectedSport} Performance →
+            {isAnalyzing
+              ? "Analyzing your performance..."
+              : `Analyze ${selectedSport} Performance →`}
           </button>
         </div>
+
+        {/* Analyzing Indicator */}
+        {isAnalyzing && (
+          <div className="mt-8 bg-slate-900 border border-blue-500/30 rounded-2xl p-6">
+            <div className="flex items-center gap-4">
+
+              <div className="w-6 h-6 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin" />
+
+              <div>
+                <p className="font-semibold">
+                  AI is analyzing your video
+                </p>
+
+                <p className="text-slate-400 text-sm mt-1">
+                  Detecting movement, posture and technique...
+                </p>
+              </div>
+
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
