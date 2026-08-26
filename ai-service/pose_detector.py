@@ -1,64 +1,98 @@
 import cv2
 import mediapipe as mp
 
-print("🤖 Virtual Sports Coach - Pose Detector")
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
-# Initialize MediaPipe Pose
-mp_pose = mp.solutions.pose
-mp_drawing = mp.solutions.drawing_utils
 
-pose = mp_pose.Pose(
-    static_image_mode=False,
-    model_complexity=1,
-    enable_segmentation=False,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
+MODEL_PATH = "models/pose_landmarker_full.task"
 
-video_path = input("Enter the path to your video: ")
 
-cap = cv2.VideoCapture(video_path)
-
-if not cap.isOpened():
-    print("❌ Could not open video.")
-    pose.close()
-    exit()
-
-print("✅ Video opened successfully.")
-print("🤖 Starting pose detection...")
-print("Press Q in the video window to stop.")
-
-while True:
-    ret, frame = cap.read()
-
-    if not ret:
-        break
-
-    # OpenCV uses BGR, MediaPipe expects RGB
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-    # Detect the person's pose
-    results = pose.process(rgb_frame)
-
-    # Draw the detected skeleton
-    if results.pose_landmarks:
-        mp_drawing.draw_landmarks(
-            frame,
-            results.pose_landmarks,
-            mp_pose.POSE_CONNECTIONS
-        )
-
-    cv2.imshow(
-        "Virtual Sports Coach - Pose Detection",
-        frame
+def create_pose_landmarker():
+    base_options = python.BaseOptions(
+        model_asset_path=MODEL_PATH
     )
 
-    # Press Q to quit
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+    options = vision.PoseLandmarkerOptions(
+        base_options=base_options,
+        running_mode=vision.RunningMode.VIDEO,
+        num_poses=1
+    )
 
-cap.release()
-cv2.destroyAllWindows()
-pose.close()
+    return vision.PoseLandmarker.create_from_options(options)
 
-print("✅ Pose detection finished.")
+
+def process_video(video_path):
+    landmarker = create_pose_landmarker()
+
+    cap = cv2.VideoCapture(video_path)
+
+    if not cap.isOpened():
+        print("Error: Could not open video.")
+        return
+
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    if fps <= 0:
+        fps = 30
+
+    frame_index = 0
+
+    while True:
+        ret, frame = cap.read()
+
+        if not ret:
+            break
+
+        # Convert OpenCV BGR image to RGB
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Convert to MediaPipe Image
+        mp_image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=rgb_frame
+        )
+
+        timestamp_ms = int((frame_index / fps) * 1000)
+
+        # Run pose detection
+        result = landmarker.detect_for_video(
+            mp_image,
+            timestamp_ms
+        )
+
+        # Draw detected landmarks
+        if result.pose_landmarks:
+
+            for pose_landmarks in result.pose_landmarks:
+
+                for landmark in pose_landmarks:
+
+                    x = int(landmark.x * frame.shape[1])
+                    y = int(landmark.y * frame.shape[0])
+
+                    cv2.circle(
+                        frame,
+                        (x, y),
+                        4,
+                        (0, 255, 0),
+                        -1
+                    )
+
+        cv2.imshow("Virtual Sports Coach - Pose Detection", frame)
+
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+        frame_index += 1
+
+    cap.release()
+    landmarker.close()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+
+    video_path = input("Enter video path: ")
+
+    process_video(video_path)
